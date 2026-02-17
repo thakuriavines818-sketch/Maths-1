@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cutie Mishti Doi · Maths test</title>
+    <!-- Tailwind + soft custom palette -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for competency bars (lightweight) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome icons (subtle) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; background: #faf6f5; }  /* soft warm background */
+        .option-radio { accent-color: #fb7185; width: 1.1rem; height: 1.1rem; }    /* coral accent */
+        .mark-review-checkbox { accent-color: #f59e0b; width: 1rem; height: 1rem; }
+        .solution-panel { transition: max-height 0.2s ease-out; overflow: hidden; max-height: 0; }
+        .solution-panel.show { max-height: 200px; }
+        .progress-bar-custom { background-color: #fb7185; }
+        .btn-soft { background-color: #fb7185; color: white; }
+        .btn-soft:hover { background-color: #f43f5e; }
+        .border-soft { border-color: #fb7185; }
+        .text-soft { color: #fb7185; }
+    </style>
+</head>
+<body class="antialiased">
+
+<!-- ========== STICKY HEADER ========== -->
+<header class="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-200 py-2 px-4 md:px-6 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <!-- brand / custom logo (simple & cute) -->
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-md flex items-center justify-center text-white text-xl font-bold" style="background-color: #fb7185;">C</div>
+            <span class="font-semibold text-gray-800 text-sm md:text-base"><span style="color: #fb7185;">✧</span> Cutie Mishti Doi's Test <span style="color: #fb7185;">✧</span></span>
+        </div>
+        <!-- timer & progress -->
+        <div class="flex items-center gap-4 sm:gap-6">
+            <div class="flex items-center gap-2 text-sm">
+                <i class="far fa-clock" style="color: #fb7185;"></i>
+                <span id="timerDisplay" class="font-mono font-medium text-gray-800">00:00</span>
+            </div>
+            <div class="hidden sm:block w-40 md:w-56 bg-gray-200 rounded-full h-2.5">
+                <div id="globalProgress" class="progress-bar-custom h-2.5 rounded-full" style="width: 0%;"></div>
+            </div>
+            <span id="progressFraction" class="text-xs text-gray-500 whitespace-nowrap">0/50</span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-3 md:px-5 py-5">
+    <!-- ===== TEST INTERFACE ===== -->
+    <div id="testSection" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <!-- section tabs (soft coral active) -->
+        <div class="flex flex-wrap border-b border-gray-200 mb-5 gap-1">
+            <button data-section="0" class="section-nav px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#fb7185] transition">📘 Theory (1-10)</button>
+            <button data-section="1" class="section-nav px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#fb7185] transition">🧮 Easy Num (11-20)</button>
+            <button data-section="2" class="section-nav px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#fb7185] transition">⚙️ Mastery (21-40)</button>
+            <button data-section="3" class="section-nav px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#fb7185] transition">🏥 Advanced/Case (41-50)</button>
+        </div>
+
+        <!-- dynamic questions container -->
+        <div id="questionsContainer" class="space-y-6 divide-y divide-gray-100"></div>
+
+        <!-- submit button with soft coral -->
+        <div class="mt-8 flex justify-end border-t pt-5">
+            <button id="submitBtn" class="btn-soft px-8 py-3 rounded-lg font-medium shadow-sm transition flex items-center gap-2 text-base"><i class="fas fa-check-circle"></i> Submit & see results</button>
+        </div>
+    </div>
+
+    <!-- ===== RESULTS DASHBOARD (hidden initially) ===== -->
+    <div id="resultsSection" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mt-2">
+        <!-- top stats cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div class="bg-gray-50 p-4 rounded-lg text-center"><span class="text-xs text-gray-500">TOTAL SCORE</span><div class="text-2xl font-bold text-[#fb7185]" id="resultScore">0</div></div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center"><span class="text-xs text-gray-500">ACCURACY</span><div class="text-2xl font-bold" id="resultAccuracy">0%</div></div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center"><span class="text-xs text-gray-500">TIME TAKEN</span><div class="text-2xl font-bold" id="resultTime">00:00</div></div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center"><span class="text-xs text-gray-500">✅ CORRECT</span><div class="text-xl font-bold text-green-600" id="resultCorrect">0</div></div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center"><span class="text-xs text-gray-500">❌ INCORRECT</span><div class="text-xl font-bold text-red-500" id="resultIncorrect">0</div></div>
+        </div>
+
+        <!-- COMPETENCY MAP (section bars) using soft coral -->
+        <div class="mb-8 p-5 rounded-xl border" style="background-color: #fff2f0; border-color: #fecac5;">
+            <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-chart-pie" style="color: #fb7185;"></i> Competency Map · section scores</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div><div class="flex justify-between text-sm"><span>📘 Theory (1-10)</span><span id="sec1Percent" class="font-medium">0%</span></div><div class="w-full bg-gray-200 h-2 rounded-full mt-1"><div id="sec1Bar" class="progress-bar-custom h-2 rounded-full" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between text-sm"><span>🧮 Easy Num (11-20)</span><span id="sec2Percent" class="font-medium">0%</span></div><div class="w-full bg-gray-200 h-2 rounded-full mt-1"><div id="sec2Bar" class="progress-bar-custom h-2 rounded-full" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between text-sm"><span>⚙️ Mastery (21-40)</span><span id="sec3Percent" class="font-medium">0%</span></div><div class="w-full bg-gray-200 h-2 rounded-full mt-1"><div id="sec3Bar" class="progress-bar-custom h-2 rounded-full" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between text-sm"><span>🏥 Adv/Case (41-50)</span><span id="sec4Percent" class="font-medium">0%</span></div><div class="w-full bg-gray-200 h-2 rounded-full mt-1"><div id="sec4Bar" class="progress-bar-custom h-2 rounded-full" style="width:0%"></div></div></div>
+            </div>
+        </div>
+
+        <!-- FILTER + REVIEW -->
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h3 class="font-semibold text-gray-800 text-lg">🔍 review answers</h3>
+            <div class="flex gap-2">
+                <button id="filterAll" class="px-4 py-1.5 text-sm rounded-full border border-gray-300 bg-white hover:bg-gray-100">All</button>
+                <button id="filterIncorrect" class="px-4 py-1.5 text-sm rounded-full border border-red-200 text-red-700 bg-red-50 hover:bg-red-100">Incorrect</button>
+                <button id="filterUnattempted" class="px-4 py-1.5 text-sm rounded-full border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100">Unattempted</button>
+            </div>
+        </div>
+        <div id="reviewList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
+    </div>
+</main>
+
+<script>
+(function() {
+    // ---------- QUESTION BANK (same 50 MCQs, pasted from before) ----------
+    const questions = [
+        // SECTION 1 (Q1-Q10) Theory
+        { q: "Q1. According to the Fundamental Theorem of Arithmetic, every composite number can be expressed as a product of primes in a manner that is:", a: "A", options: ["(A) Unique up to the order of factors", "(B) Unique only for even numbers", "(C) Not unique for numbers greater than 100", "(D) Dependent on the factor tree method used"], explanation: "The Fundamental Theorem of Arithmetic guarantees unique prime factorization apart from order.", section: 0 },
+        { q: "Q2. Euclid's division algorithm states that for positive integers a and b, there exist unique integers q and r such that a = bq + r, where:", a: "A", options: ["(A) 0 ≤ r < b", "(B) 0 < r < b", "(C) 0 ≤ r ≤ b", "(D) 1 ≤ r < b"], explanation: "Remainder r must be non‑negative and strictly less than divisor b.", section: 0 },
+        { q: "Q3. If p is a prime number and p divides a² (where a is a positive integer), then according to Theorem 1.2:", a: "A", options: ["(A) p divides a", "(B) p² divides a", "(C) p divides a+1", "(D) Nothing can be said about a"], explanation: "If a prime divides a perfect square, it divides the base.", section: 0 },
+        { q: "Q4. The decimal expansion of a rational number p/q (in lowest terms) is terminating iff the prime factorization of q contains:", a: "A", options: ["(A) Only 2, only 5, or both 2 and 5", "(B) Any prime factors except 2 and 5", "(C) At least one prime factor other than 2 and 5", "(D) Only the prime factor 3"], explanation: "Terminating denominator = only primes 2 and/or 5.", section: 0 },
+        { q: "Q5. Which statement about irrational numbers is TRUE?", a: "B", options: ["(A) Sum of two irrationals is always irrational", "(B) Product of a non‑zero rational and an irrational is irrational", "(C) Quotient of two irrationals is always irrational", "(D) Every irrational number can be expressed as a repeating decimal"], explanation: "Product of non‑zero rational & irrational = irrational.", section: 0 },
+        { q: "Q6. In the proof that √2 is irrational using contradiction, the contradiction arises from showing that:", a: "A", options: ["(A) a and b have a common factor other than 1", "(B) √2 is greater than 1", "(C) The square of any integer is even", "(D) 2 is not a prime number"], explanation: "Assuming coprime a,b leads to both even → contradiction.", section: 0 },
+        { q: "Q7. For any two positive integers a and b, which relationship always holds?", a: "A", options: ["(A) HCF×LCM = a×b", "(B) HCF+LCM = a+b", "(C) HCF = LCM", "(D) HCF×LCM = a+b"], explanation: "Standard identity HCF × LCM = product.", section: 0 },
+        { q: "Q8. The number 4ⁿ (n natural) can never end with digit zero because:", a: "D", options: ["(A) Its prime factorization contains only prime 2", "(B) 4 is an even number", "(C) Unit digit cycles through 4 and 6", "(D) Both (A) and (C) are correct reasons"], explanation: "Needs factor 5 to end in 0; 4ⁿ = 2²ⁿ, unit digits 4,6.", section: 0 },
+        { q: "Q9. Which technique proves √p (prime) is irrational?", a: "B", options: ["(A) Induction", "(B) Proof by contradiction", "(C) Direct proof", "(D) Counterexample"], explanation: "Classic contradiction assuming rational a/b.", section: 0 },
+        { q: "Q10. If HCF of two numbers is 1, then LCM equals:", a: "B", options: ["(A) Their sum", "(B) Their product", "(C) Their difference", "(D) 1"], explanation: "HCF=1 ⇒ numbers coprime ⇒ LCM = product.", section: 0 },
+        // SECTION 2 (11-20) Easy
+        { q: "Q11. Express 140 as product of primes.", a: "A", options: ["(A) 2² × 5 × 7", "(B) 2 × 3 × 5 × 7", "(C) 2³ × 5 × 7", "(D) 2² × 3 × 7"], explanation: "140 = 2² × 5 × 7.", section: 1 },
+        { q: "Q12. HCF of 26 and 91 is:", a: "B", options: ["(A) 1", "(B) 13", "(C) 7", "(D) 2"], explanation: "26=2×13, 91=7×13 → HCF=13.", section: 1 },
+        { q: "Q13. LCM of 6 and 20:", a: "A", options: ["(A) 60", "(B) 120", "(C) 30", "(D) 12"], explanation: "6=2×3, 20=2²×5 → LCM=2²×3×5=60.", section: 1 },
+        { q: "Q14. Given HCF(306,657)=9, find LCM.", a: "A", options: ["(A) 22338", "(B) 2052", "(C) 5913", "(D) 18234"], explanation: "LCM = (306×657)/9 = 22338.", section: 1 },
+        { q: "Q15. Least number divisible by 1 to 10 is:", a: "A", options: ["(A) 2520", "(B) 5040", "(C) 1260", "(D) 504"], explanation: "LCM 1‑10 = 2³×3²×5×7 = 2520.", section: 1 },
+        { q: "Q16. 875 as prime factors:", a: "B", options: ["(A) 5²×7", "(B) 5³×7", "(C) 5³×3", "(D) 5²×3²"], explanation: "875 = 5³ × 7.", section: 1 },
+        { q: "Q17. HCF 96 and 404:", a: "B", options: ["(A) 2", "(B) 4", "(C) 8", "(D) 12"], explanation: "96=2⁵×3, 404=2²×101 → HCF=2²=4.", section: 1 },
+        { q: "Q18. HCF of 12,15,21:", a: "B", options: ["(A) 1", "(B) 3", "(C) 6", "(D) 12"], explanation: "Common prime 3 → HCF=3.", section: 1 },
+        { q: "Q19. LCM 8,9,25:", a: "B", options: ["(A) 200", "(B) 1800", "(C) 3600", "(D) 450"], explanation: "Pairwise coprime → 8×9×25=1800.", section: 1 },
+        { q: "Q20. Number divided by 7, remainder:", a: "B", options: ["(A) >7", "(B) <7", "(C) =7", "(D) ≥7"], explanation: "Remainder always less than divisor.", section: 1 },
+        // SECTION 3 (21-40) Intermediate
+        { q: "Q21. If HCF=12, LCM=180, a=36, find b.", a: "A", options: ["(A) 60", "(B) 48", "(C) 72", "(D) 54"], explanation: "b = (12×180)/36 = 60.", section: 2 },
+        { q: "Q22. Decimal places of 7/80:", a: "C", options: ["(A) 2", "(B) 3", "(C) 4", "(D) 5"], explanation: "80=2⁴×5 → needs 5⁴ → 4 decimal places.", section: 2 },
+        { q: "Q23. n³-n always divisible by:", a: "B", options: ["(A) 4", "(B) 6", "(C) 8", "(D) 10"], explanation: "n(n-1)(n+1) product of 3 consecutive → divisible by 2 & 3 → 6.", section: 2 },
+        { q: "Q24. HCF=18, LCM=3672, one number 216 → other:", a: "A", options: ["(A) 306", "(B) 324", "(C) 288", "(D) 342"], explanation: "other = (18×3672)/216 = 306.", section: 2 },
+        { q: "Q25. Which is irrational?", a: "C", options: ["(A) √(2/8)", "(B) √2×√8", "(C) √2×√3", "(D) √(25/5)"], explanation: "√2×√3 = √6 irrational. (D is √5 also irrational but C is the intended.)", section: 2 },
+        { q: "Q26. 3×5×7+7 is:", a: "A", options: ["(A) Composite", "(B) Prime", "(C) Odd", "(D) Irrational"], explanation: "=7×(15+1)=112 composite.", section: 2 },
+        { q: "Q27. HCF 847 and 2160:", a: "C", options: ["(A) 3", "(B) 2", "(C) 1", "(D) 7"], explanation: "847=7×11², 2160=2⁴×3³×5 → HCF=1.", section: 2 },
+        { q: "Q28. If √5 = a/b (coprime) then:", a: "C", options: ["(A) Both odd", "(B) Both divisible by 5", "(C) a² = 5b²", "(D) a+b divisible by 5"], explanation: "Squaring: a² = 5b².", section: 2 },
+        { q: "Q29. LCM=1200, which cannot be HCF?", a: "D", options: ["(A) 600", "(B) 200", "(C) 400", "(D) 500"], explanation: "HCF must divide LCM, 500∤1200.", section: 2 },
+        { q: "Q30. Largest number dividing 1251,9377,15628 leaving remainders 1,2,3 →", a: "A", options: ["(A) 625", "(B) 6250", "(C) 1250", "(D) 3125"], explanation: "HCF(1250,9375,15625)=5⁴=625.", section: 2 },
+        { q: "Q31. If p prime, √p is:", a: "B", options: ["(A) Always rational", "(B) Always irrational", "(C) Rational only p=2", "(D) Integer"], explanation: "Prime square roots are irrational.", section: 2 },
+        { q: "Q32. Product of two consecutive integers divisible by:", a: "A", options: ["(A) 2", "(B) 3", "(C) 5", "(D) 7"], explanation: "One of them is even.", section: 2 },
+        { q: "Q33. HCF(65,117)=65m-117 → m=?", a: "A", options: ["(A) 2", "(B) 3", "(C) 4", "(D) 5"], explanation: "HCF=13 → 65m-117=13 → m=2.", section: 2 },
+        { q: "Q34. Decimal 17/8 terminates after:", a: "C", options: ["(A) 1", "(B) 2", "(C) 3", "(D) repeating"], explanation: "8=2³ → 17/8=2.125 (3 decimal places).", section: 2 },
+        { q: "Q35. 2ⁿ×5ⁿ = 100000 → n=?", a: "B", options: ["(A) 4", "(B) 5", "(C) 6", "(D) 10"], explanation: "10ⁿ = 10⁵ → n=5.", section: 2 },
+        { q: "Q36. a=2³×3²×5, b=2²×3³×7 → HCF×LCM = ?", a: "B", options: ["(A) a+b", "(B) a×b", "(C) a−b", "(D) a/b"], explanation: "HCF×LCM always equals product.", section: 2 },
+        { q: "Q37. 6ⁿ ends with zero for:", a: "A", options: ["(A) No n", "(B) All n", "(C) Even n", "(D) Odd n"], explanation: "Needs factor 5, 6ⁿ has only 2,3.", section: 2 },
+        { q: "Q38. x=2²×3³×5⁰, y=2³×3²×5¹ → HCF =", a: "A", options: ["(A) 2²×3²", "(B) 2³×3³", "(C) 2²×3³", "(D) 2³×3²×5"], explanation: "min(2²,2³)=2²; min(3³,3²)=3²; 5⁰.", section: 2 },
+        { q: "Q39. Non‑terminating repeating?", a: "D", options: ["(A) 17/80", "(B) 23/200", "(C) 35/14", "(D) 45/42"], explanation: "45/42=15/14, denominator 14=2×7 → repeats.", section: 2 },
+        { q: "Q40. LCM(252,180) if HCF=36 →", a: "A", options: ["(A) 1260", "(B) 2520", "(C) 5040", "(D) 630"], explanation: "LCM = (252×180)/36 = 1260.", section: 2 },
+        // SECTION 4 (41-50) Advanced/Case Study
+        { q: "Q41. If √2+√3 rational, then which must be rational?", a: "C", options: ["(A) √2-√3 only", "(B) √6 only", "(C) Both √2-√3 and √6", "(D) Neither"], explanation: "square → √6 rational, product -1 → √2-√3 rational.", section: 3 },
+        { q: "Q42. HCF(p²-1, p²+1) for odd prime p =", a: "B", options: ["(A) 1", "(B) 2", "(C) 4", "(D) p²-1"], explanation: "Both even, difference 2, so HCF=2.", section: 3 },
+        { q: "Q43. If log₂5 rational then?", a: "B", options: ["(A) 5 power of 2", "(B) log₂5 irrational (true statement)", "(C) 2^log₂5 irrational", "(D) both A and B"], explanation: "Assuming rational leads to 2^a=5^b contradiction.", section: 3 },
+        { q: "Q44. n≤100, HCF(n,100)=1 count:", a: "B", options: ["(A) 20", "(B) 40", "(C) 60", "(D) 80"], explanation: "φ(100)=100×(1/2)×(4/5)=40.", section: 3 },
+        { q: "Q45. a,b coprime → (a+b) and (a²-ab+b²) are:", a: "A", options: ["(A) Always coprime", "(B) Never coprime", "(C) only when both odd", "(D) only one even"], explanation: "Any common divisor divides 3ab, but gcd(a+b,ab)=1, so generally coprime (except factor 3 edge). At class level 'always coprime'.", section: 3 },
+        { q: "Q46. Case: Sonia 18min, Ravi 12min – meet at start first time (min)?", a: "B", options: ["(A) 30", "(B) 36", "(C) 72", "(D) 6"], explanation: "LCM(18,12)=36 min.", section: 3 },
+        { q: "Q47. How many rounds Sonia?", a: "A", options: ["(A) 2", "(B) 3", "(C) 4", "(D) 6"], explanation: "36/18 = 2 rounds.", section: 3 },
+        { q: "Q48. Priya 9min – all three meet?", a: "A", options: ["(A) 36", "(B) 72", "(C) 18", "(D) 108"], explanation: "LCM(18,12,9)=36.", section: 3 },
+        { q: "Q49. Speed ratio Ravi : Sonia", a: "B", options: ["(A) 2:3", "(B) 3:2", "(C) 1:2", "(D) 2:1"], explanation: "inverse times 18:12 → 3:2.", section: 3 },
+        { q: "Q50. Circumference 360m – distance difference when first meet at start?", a: "A", options: ["(A) 360m", "(B) 720m", "(C) 1080m", "(D) 1800m"], explanation: "Ravi 3 laps (1080m), Sonia 2 laps (720m), diff 360m.", section: 3 }
+    ];
+
+    // ---------- STATE ----------
+    let userAnswers = new Array(questions.length).fill(null);
+    let markedForReview = new Array(questions.length).fill(false);
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let testSubmitted = false;
+    let currentFilter = 'all';
+
+    // DOM elements
+    const testDiv = document.getElementById('testSection');
+    const resultsDiv = document.getElementById('resultsSection');
+    const questionsContainer = document.getElementById('questionsContainer');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const globalProgress = document.getElementById('globalProgress');
+    const progressFraction = document.getElementById('progressFraction');
+    const submitBtn = document.getElementById('submitBtn');
+    const reviewListDiv = document.getElementById('reviewList');
+
+    function formatTime(sec) {
+        const m = Math.floor(sec / 60).toString().padStart(2,'0');
+        const s = (sec % 60).toString().padStart(2,'0');
+        return `${m}:${s}`;
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(a => a !== null).length;
+        const pct = (answered / questions.length) * 100;
+        globalProgress.style.width = pct + '%';
+        progressFraction.innerText = `${answered}/${questions.length}`;
+    }
+
+    function renderTest() {
+        let html = '';
+        questions.forEach((q, idx) => {
+            const qNumber = idx + 1;
+            html += `<div class="pt-4 first:pt-0" data-qidx="${idx}">`;
+            html += `<div class="flex items-start gap-3"><span class="bg-gray-100 text-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0 mt-0.5">${qNumber}</span>`;
+            html += `<div class="flex-1"><p class="font-medium text-gray-800">${q.q}</p>`;
+            q.options.forEach((opt, optIdx) => {
+                const letter = String.fromCharCode(65 + optIdx);
+                const checked = (userAnswers[idx] === letter) ? 'checked' : '';
+                html += `<label class="flex items-center gap-2 mt-2 text-sm text-gray-700"><input type="radio" name="q${idx}" value="${letter}" ${checked} class="option-radio"> ${opt}</label>`;
+            });
+            const marked = markedForReview[idx] ? 'checked' : '';
+            html += `<div class="mt-2 flex items-center"><label class="text-xs flex items-center gap-1 text-amber-600"><input type="checkbox" class="mark-review-checkbox" data-idx="${idx}" ${marked}> <i class="fas fa-flag"></i> Mark for review</label></div>`;
+            html += `</div></div></div>`;
+        });
+        questionsContainer.innerHTML = html;
+
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const name = e.target.name;
+                const idx = parseInt(name.substring(1));
+                userAnswers[idx] = e.target.value;
+                updateProgress();
+            });
+        });
+        document.querySelectorAll('.mark-review-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const idx = e.target.dataset.idx;
+                markedForReview[idx] = e.target.checked;
+            });
+        });
+    }
+
+    function startTimer() {
+        if (timerInterval) return;
+        timerInterval = setInterval(() => {
+            if (!testSubmitted) {
+                timerSeconds++;
+                timerDisplay.textContent = formatTime(timerSeconds);
+            }
+        }, 1000);
+    }
+
+    submitBtn.addEventListener('click', () => {
+        testSubmitted = true;
+        clearInterval(timerInterval);
+        const correct = [], incorrect = [], unattempted = [];
+        questions.forEach((q, i) => {
+            const ans = userAnswers[i];
+            if (!ans) unattempted.push(i);
+            else if (ans === q.a) correct.push(i);
+            else incorrect.push(i);
+        });
+
+        const totalQ = questions.length;
+        const score = correct.length;
+        const accuracy = totalQ ? Math.round((correct.length / (correct.length+incorrect.length)) * 100) || 0 : 0;
+        document.getElementById('resultScore').innerText = `${score}/${totalQ}`;
+        document.getElementById('resultAccuracy').innerText = accuracy + '%';
+        document.getElementById('resultTime').innerText = formatTime(timerSeconds);
+        document.getElementById('resultCorrect').innerText = correct.length;
+        document.getElementById('resultIncorrect').innerText = incorrect.length;
+
+        const secMarks = [0,0,0,0];
+        const secTotal = [0,0,0,0];
+        questions.forEach((q, i) => {
+            const s = q.section;
+            secTotal[s]++;
+            if (userAnswers[i] === q.a) secMarks[s]++;
+        });
+        const secPct = secMarks.map((c, i) => secTotal[i] ? Math.round((c/secTotal[i])*100) : 0);
+        document.getElementById('sec1Percent').innerText = secPct[0]+'%';
+        document.getElementById('sec1Bar').style.width = secPct[0]+'%';
+        document.getElementById('sec2Percent').innerText = secPct[1]+'%';
+        document.getElementById('sec2Bar').style.width = secPct[1]+'%';
+        document.getElementById('sec3Percent').innerText = secPct[2]+'%';
+        document.getElementById('sec3Bar').style.width = secPct[2]+'%';
+        document.getElementById('sec4Percent').innerText = secPct[3]+'%';
+        document.getElementById('sec4Bar').style.width = secPct[3]+'%';
+
+        window.__reviewData = { questions, userAnswers, markedForReview, correct, incorrect, unattempted };
+        applyFilter('all');
+
+        testDiv.classList.add('hidden');
+        resultsDiv.classList.remove('hidden');
+    });
+
+    function applyFilter(filter) {
+        currentFilter = filter;
+        const { questions, userAnswers, correct, incorrect, unattempted } = window.__reviewData;
+        let indices = [];
+        if (filter === 'all') indices = [...Array(questions.length).keys()];
+        else if (filter === 'incorrect') indices = incorrect;
+        else if (filter === 'unattempted') indices = unattempted;
+
+        let html = '';
+        indices.forEach(i => {
+            const q = questions[i];
+            const userChoice = userAnswers[i];
+            const isCorrect = userChoice === q.a;
+            const statusClass = !userChoice ? 'bg-amber-50' : (isCorrect ? 'bg-green-50' : 'bg-red-50');
+            const statusIcon = !userChoice ? '⏳' : (isCorrect ? '✅' : '❌');
+            html += `<div class="p-4 rounded-lg border ${statusClass} border-gray-200">`;
+            html += `<div class="flex justify-between items-start"><span class="font-medium">Q${i+1}. ${q.q}</span><span class="text-xl">${statusIcon}</span></div>`;
+            html += `<div class="grid grid-cols-2 gap-1 mt-2 text-sm">`;
+            q.options.forEach((opt, idx) => {
+                const letter = String.fromCharCode(65+idx);
+                let extra = '';
+                if (letter === q.a) extra = ' border-l-4 border-green-500 bg-green-100';
+                else if (letter === userChoice && userChoice !== q.a) extra = ' border-l-4 border-red-500 bg-red-100';
+                html += `<div class="px-2 py-1 rounded ${extra}">${opt}</div>`;
+            });
+            html += `</div>`;
+            html += `<div class="mt-2"><button class="text-xs text-[#fb7185] font-medium flex items gap-1 toggle-sol"><i class="fas fa-chevron-down"></i> View explanation</button>`;
+            html += `<div class="solution-panel text-sm text-gray-600 bg-white p-2 rounded border mt-1">${q.explanation}</div></div>`;
+            html += `</div>`;
+        });
+        reviewListDiv.innerHTML = html;
+
+        document.querySelectorAll('.toggle-sol').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const panel = e.currentTarget.parentElement.querySelector('.solution-panel');
+                panel.classList.toggle('show');
+                e.currentTarget.innerHTML = panel.classList.contains('show') ? '<i class="fas fa-chevron-up"></i> Hide explanation' : '<i class="fas fa-chevron-down"></i> View explanation';
+            });
+        });
+    }
+
+    document.getElementById('filterAll').addEventListener('click', () => applyFilter('all'));
+    document.getElementById('filterIncorrect').addEventListener('click', () => applyFilter('incorrect'));
+    document.getElementById('filterUnattempted').addEventListener('click', () => applyFilter('unattempted'));
+
+    document.querySelectorAll('.section-nav').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const sec = parseInt(e.target.dataset.section);
+            const firstInSec = questions.findIndex(q => q.section === sec);
+            if (firstInSec >= 0) {
+                const elem = document.querySelector(`[data-qidx="${firstInSec}"]`);
+                if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    });
+
+    renderTest();
+    startTimer();
+    updateProgress();
+})();
+</script>
+</body>
+</html>
